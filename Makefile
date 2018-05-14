@@ -243,7 +243,11 @@ dev.up.analytics_pipeline: | check-memory ## Bring up analytics_pipeline
 	docker-compose -f docker-compose.yml -f docker-compose-analytics-pipeline.yml -f docker-compose-host.yml up -d analyticspipeline
 
 pull.analytics_pipeline: ## Update Analytics pipeline Docker images
-	docker-compose -f docker-compose-analytics-pipeline.yml pull --parallel
+	docker-compose  -f docker-compose.yml -f docker-compose-analytics-pipeline.yml pull --include-deps analyticspipeline
+
+analytics-pipeline-devstack-test:
+	docker exec -it edx.devstack.analytics_pipeline make docker-test-acceptance-local ONLY_TESTS=edx.analytics.tasks.tests.acceptance.test_hive
+	docker exec -it edx.devstack.analytics_pipeline make docker-test-acceptance-local ONLY_TESTS=edx.analytics.tasks.tests.acceptance.test_user_activity
 
 stop.analytics_pipeline:
 	docker-compose -f docker-compose.yml -f docker-compose-analytics-pipeline.yml stop
