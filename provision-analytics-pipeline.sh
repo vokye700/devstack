@@ -27,6 +27,10 @@ do
   sleep 1
 done
 
+# In the event of a fresh MySQL container, wait a few seconds for the server to restart
+# This can be removed once https://github.com/docker-library/mysql/issues/245 is resolved.
+sleep 20
+
 # Analytics pipeline has dependency on lms but we only need its db schema & not full lms. So we'll just load their db
 # schemas as part of analytics pipeline provisioning. If there is a need of a full fledge LMS, then provision lms
 # by following their documentation.
@@ -34,10 +38,11 @@ if [[ ! -z "`docker exec -i edx.devstack.mysql mysql -uroot -se "SELECT SCHEMA_N
 then
   echo -e "${GREEN}LMS DB exists, skipping lms schema load.${NC}"
 else
-  # Provisioning lms db with migrations. Update above comment if these are approved.
   echo -e "${GREEN}LMS DB not found, load the schema.${NC}"
-  docker exec -i edx.devstack.mysql mysql -uroot --max_allowed_packet=1073741824 mysql < provision.sql
-  docker exec -i edx.devstack.mysql mysql -uroot --max_allowed_packet=1073741824 edxapp < edxapp.sql
+  docker exec -i edx.devstack.mysql mysql -uroot -e "set global max_allowed_packet=1073741824;set global wait_timeout = 99999;SET global net_read_timeout = 99999;"
+  # without above query, subsequent queries will fail.
+  docker exec -i edx.devstack.mysql mysql -uroot mysql < provision.sql
+  ./load-db.sh edxapp
   docker-compose $DOCKER_COMPOSE_FILES up -d lms studio
   docker-compose exec lms bash -c 'source /edx/app/edxapp/edxapp_env && cd /edx/app/edxapp/edx-platform && NO_PYTHON_UNINSTALL=1 paver install_prereqs'
   #Installing prereqs crashes the process
@@ -56,7 +61,7 @@ docker-compose $DOCKER_COMPOSE_FILES exec analyticspipeline bash -c '/edx/app/ha
 # materialize hadoop directory structure
 echo -e "${GREEN}Initializing Hadoop directory structure...${NC}"
 
-until curl http://namenode:50070/jmx?qry=Hadoop:service=NameNode,name=NameNodeStatus|grep -q 'active'; do
+until curl http://127.0.0.1:50070/jmx?qry=Hadoop:service=NameNode,name=NameNodeStatus|grep -q 'active'; do
   printf "Waiting for namenode!"
   sleep 5
 done
