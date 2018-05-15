@@ -246,8 +246,8 @@ pull.analytics_pipeline: ## Update Analytics pipeline Docker images
 	docker-compose  -f docker-compose.yml -f docker-compose-analytics-pipeline.yml pull --include-deps analyticspipeline
 
 analytics-pipeline-devstack-test:
-	docker exec -it edx.devstack.analytics_pipeline make docker-test-acceptance-local ONLY_TESTS=edx.analytics.tasks.tests.acceptance.test_user_activity
-	docker exec -it edx.devstack.analytics_pipeline make docker-test-acceptance-local ONLY_TESTS=edx.analytics.tasks.tests.acceptance.test_internal_reporting_database
+	docker exec -u root -it edx.devstack.analytics_pipeline make develop-local docker-test-acceptance-local ONLY_TESTS=edx.analytics.tasks.tests.acceptance.test_user_activity
+	docker exec -u root -it edx.devstack.analytics_pipeline make develop-local docker-test-acceptance-local ONLY_TESTS=edx.analytics.tasks.tests.acceptance.test_internal_reporting_database
 
 stop.analytics_pipeline:
 	docker-compose -f docker-compose.yml -f docker-compose-analytics-pipeline.yml stop
